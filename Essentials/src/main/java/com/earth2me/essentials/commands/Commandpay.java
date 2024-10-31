@@ -17,6 +17,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Commandpay extends EssentialsLoopCommand {
+    private static final BigDecimal THOUSAND = new BigDecimal(1000);
+    private static final BigDecimal MILLION = new BigDecimal(1_000_000);
+    private static final BigDecimal BILLION = new BigDecimal(1_000_000_000);
+    private static final BigDecimal TRILLION = new BigDecimal(1_000_000_000_000L);
 
     public Commandpay() {
         super("pay");
@@ -40,12 +44,30 @@ public class Commandpay extends EssentialsLoopCommand {
             throw new NotEnoughArgumentsException();
         }
 
-        final BigDecimal amount;
-        if(ess.getSettings().isPerPlayerLocale()){
-            amount = NumberUtil.parseStringToBDecimal(ogStr, user.getPlayerLocale(ess.getPlayerLocaleProvider().getLocale(user.getBase())));
-        } else {
-            amount = NumberUtil.parseStringToBDecimal(ogStr);
+        BigDecimal tempAmount = new BigDecimal(sanitizedString);
+        switch (Character.toLowerCase(ogStr.charAt(ogStr.length() - 1))) {
+            case 'k': {
+                tempAmount = tempAmount.multiply(THOUSAND);
+                break;
+            }
+            case 'm': {
+                tempAmount = tempAmount.multiply(MILLION);
+                break;
+            }
+            case 'b': {
+                tempAmount = tempAmount.multiply(BILLION);
+                break;
+            }
+            case 't': {
+                tempAmount = tempAmount.multiply(TRILLION);
+                break;
+            }
+            default: {
+                break;
+            }
         }
+
+        final BigDecimal amount = tempAmount;
 
         if (amount.compareTo(ess.getSettings().getMinimumPayAmount()) < 0) { // Check if amount is less than minimum-pay-amount
             throw new TranslatableException("minimumPayAmount", NumberUtil.displayCurrencyExactly(ess.getSettings().getMinimumPayAmount(), ess));
