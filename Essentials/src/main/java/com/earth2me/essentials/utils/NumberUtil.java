@@ -7,18 +7,25 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Locale;
 
 import static com.earth2me.essentials.I18n.tlLiteral;
 
 public final class NumberUtil {
 
+    private static final BigDecimal THOUSAND = new BigDecimal(1000);
+    private static final BigDecimal MILLION = new BigDecimal(1_000_000);
+    private static final BigDecimal BILLION = new BigDecimal(1_000_000_000);
+    private static final BigDecimal TRILLION = new BigDecimal(1_000_000_000_000L);
+
     private static final DecimalFormat twoDPlaces = new DecimalFormat("#,###.##");
     private static final DecimalFormat currencyFormat = new DecimalFormat("#0.00", DecimalFormatSymbols.getInstance(Locale.US));
 
     // This field is likely to be modified in com.earth2me.essentials.Settings when loading currency format.
     // This ensures that we can supply a constant formatting.
-    private static NumberFormat PRETTY_FORMAT = NumberFormat.getInstance(Locale.US);
+    private static Locale PRETTY_LOCALE = Locale.US;
+    private static NumberFormat PRETTY_FORMAT = NumberFormat.getInstance(PRETTY_LOCALE);
 
     static {
         twoDPlaces.setRoundingMode(RoundingMode.HALF_UP);
@@ -136,6 +143,58 @@ public final class NumberUtil {
         } catch (final NumberFormatException e) {
             return false;
         }
+    }
+
+    public static BigDecimal parseStringToBDecimal(final String sArg, final Locale locale) throws ParseException {
+
+        if(sArg.isEmpty()) throw new ParseException("String empty", 0);
+
+        final char lastChar = Character.toUpperCase(sArg.charAt(sArg.length() - 1));
+        boolean hasSuffix = false;
+        BigDecimal multiplier = BigDecimal.ONE;
+        String numericPart = sArg;
+
+        switch (lastChar) {
+            case 'K': {
+                hasSuffix = true;
+                multiplier = THOUSAND;
+                numericPart = sArg.substring(0, sArg.length() - 1);
+                break;
+            }
+            case 'M': {
+                hasSuffix = true;
+                multiplier = MILLION;
+                numericPart = sArg.substring(0, sArg.length() - 1);
+                break;
+            }
+            case 'B': {
+                hasSuffix = true;
+                multiplier = BILLION;
+                numericPart = sArg.substring(0, sArg.length() - 1);
+                break;
+            }
+            case 'T': {
+                hasSuffix = true;
+                multiplier = TRILLION;
+                numericPart = sArg.substring(0, sArg.length() - 1);
+                break;
+            }
+            default:
+                break;
+        }
+
+        final NumberFormat format = NumberFormat.getInstance(locale);
+        final Number parsed = format.parse(numericPart.trim());
+        BigDecimal amount = new BigDecimal(parsed.toString());
+
+        if(hasSuffix){
+            amount = amount.multiply(multiplier);
+        }
+        return amount;
+    }
+
+    public static BigDecimal parseStringToBDecimal(final String sArg) throws ParseException {
+        return parseStringToBDecimal(sArg, PRETTY_LOCALE);
     }
 
     /**
