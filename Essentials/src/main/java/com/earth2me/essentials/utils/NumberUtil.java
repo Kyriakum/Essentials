@@ -1,5 +1,6 @@
 package com.earth2me.essentials.utils;
 
+import com.earth2me.essentials.commands.InvalidModifierException;
 import net.ess3.api.IEssentials;
 
 import java.math.BigDecimal;
@@ -146,55 +147,49 @@ public final class NumberUtil {
         }
     }
 
-    public static BigDecimal parseStringToBDecimal(final String sArg, final Locale locale) throws ParseException {
+    public static BigDecimal parseStringToBDecimal(final String sArg, final Locale locale) throws ParseException, InvalidModifierException {
+        if (sArg.isEmpty()) {
+            throw new IllegalArgumentException();
+        }
 
-        if(sArg.isEmpty()) throw new ParseException("String empty", 0);
+        final String sanitizedString = sArg.replaceAll("[^0-9.,]", "");
+        BigDecimal multiplier = null;
 
-        final char lastChar = Character.toUpperCase(sArg.charAt(sArg.length() - 1));
-        boolean hasSuffix = false;
-        BigDecimal multiplier = BigDecimal.ONE;
-        String numericPart = sArg;
-
-        switch (lastChar) {
-            case 'K': {
-                hasSuffix = true;
+        switch (sArg.replace(sanitizedString, "").toUpperCase()) {
+            case "": {
+                break;
+            }
+            case "K": {
                 multiplier = THOUSAND;
-                numericPart = sArg.substring(0, sArg.length() - 1);
                 break;
             }
-            case 'M': {
-                hasSuffix = true;
+            case "M": {
                 multiplier = MILLION;
-                numericPart = sArg.substring(0, sArg.length() - 1);
                 break;
             }
-            case 'B': {
-                hasSuffix = true;
+            case "B": {
                 multiplier = BILLION;
-                numericPart = sArg.substring(0, sArg.length() - 1);
                 break;
             }
-            case 'T': {
-                hasSuffix = true;
+            case "T": {
                 multiplier = TRILLION;
-                numericPart = sArg.substring(0, sArg.length() - 1);
                 break;
             }
             default:
-                break;
+                throw new InvalidModifierException();
         }
 
         final NumberFormat format = NumberFormat.getInstance(locale);
-        final Number parsed = format.parse(numericPart.trim());
+        final Number parsed = format.parse(sanitizedString);
         BigDecimal amount = new BigDecimal(parsed.toString());
 
-        if(hasSuffix){
+        if (multiplier != null) {
             amount = amount.multiply(multiplier);
         }
         return amount;
     }
 
-    public static BigDecimal parseStringToBDecimal(final String sArg) throws ParseException {
+    public static BigDecimal parseStringToBDecimal(final String sArg) throws ParseException, InvalidModifierException {
         return parseStringToBDecimal(sArg, PRETTY_LOCALE);
     }
 
